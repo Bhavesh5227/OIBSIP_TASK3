@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.DS_Store
+
+# Logs & data
+*.log
+chat_history/
+
+# Secrets — never commit these
+config/secrets.py
