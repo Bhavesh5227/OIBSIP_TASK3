@@ -5,7 +5,7 @@ from config.settings import HOST, PORT_BASIC, PORT_MAIN
 
 def menu():
     print("\n╔══════════════════════════╗")
-    print("║        PyChat 💬          ║")
+    print("║        PyChat 💬         ║")
     print("╠══════════════════════════╣")
     print(f"║  Basic server : {HOST}:{PORT_BASIC}  ║")
     print(f"║  Main  server : {HOST}:{PORT_MAIN}  ║")
