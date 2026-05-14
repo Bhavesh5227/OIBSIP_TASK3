@@ -16,30 +16,30 @@ from config.settings import (
 )
 
 # ── Storage ────────────────────────────────────────────────────
-users = {}           # username → { "password_hash": str, "created_at": int }
-sessions = {}        # token → username
-rooms = {
+users       = {}   # username → { password_hash, created_at }
+sessions    = {}   # token    → username
+rooms       = {
     name: {"description": desc, "members": set(), "history": []}
     for name, desc in DEFAULT_ROOMS.items()
 }
-connections = {}     # username → { "conn": socket, "room": str|None }
-lock = threading.Lock()
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+connections = {}   # username → { conn, room }
+lock        = threading.Lock()
+server      = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 
 # ── Message builder ────────────────────────────────────────────
 
 def make_msg(type_, sender, text, **kwargs):
     return json.dumps({
-        "type": type_,
-        "sender": sender,
-        "text": text,
+        "type":      type_,
+        "sender":    sender,
+        "text":      text,
         "timestamp": int(time.time() * 1000),
         **kwargs
     }).encode()
 
 
-# ── Task 5: Auth ───────────────────────────────────────────────
+# ── Auth ───────────────────────────────────────────────────────
 
 def generate_token():
     return base64.b64encode(os.urandom(TOKEN_LENGTH)).decode()
@@ -48,7 +48,7 @@ def register_user(username, password):
     if len(username) < MIN_USERNAME_LEN or len(username) > MAX_USERNAME_LEN:
         return False, f"Username must be {MIN_USERNAME_LEN}–{MAX_USERNAME_LEN} characters"
     if not username.isalnum():
-        return False, "Username must be letters and numbers only"
+        return False, "Letters and numbers only"
     if len(password) < MIN_PASSWORD_LEN:
         return False, f"Password must be at least {MIN_PASSWORD_LEN} characters"
     with lock:
@@ -79,7 +79,7 @@ def logout_user(token):
         sessions.pop(token, None)
 
 
-# ── Task 4: Room helpers ───────────────────────────────────────
+# ── Room helpers ───────────────────────────────────────────────
 
 def get_room_list():
     return [{"name": n, "description": r["description"]} for n, r in rooms.items()]
@@ -109,9 +109,11 @@ def send_user_list(room_name):
         make_msg("room_users", "server", "", room=room_name, users=members))
 
 def do_join_room(username, room_name):
+    # BUG FIX: read old_room inside a single lock acquisition
     with lock:
         old_room = connections[username].get("room")
 
+    # Leave old room cleanly
     if old_room and old_room in rooms:
         with lock:
             rooms[old_room]["members"].discard(username)
@@ -119,6 +121,7 @@ def do_join_room(username, room_name):
             make_msg("system", "server", f"{username} left #{old_room}"))
         send_user_list(old_room)
 
+    # Enter new room
     with lock:
         rooms[room_name]["members"].add(username)
         connections[username]["room"] = room_name
@@ -156,7 +159,6 @@ def handle(conn, username, token):
 
             msg = json.loads(data.decode())
 
-            # Task 5: validate token on every single message
             if validate_token(msg.get("token", "")) != username:
                 conn.send(make_msg("error", "server", "Invalid session. Please login again."))
                 break
@@ -230,7 +232,7 @@ def auth_handshake(conn, addr):
             data = conn.recv(RECV_BUFFER)
             if not data:
                 return None, None
-            msg = json.loads(data.decode())
+            msg      = json.loads(data.decode())
             msg_type = msg.get("type")
             username = msg.get("username", "").strip()
             password = msg.get("password", "")
@@ -249,6 +251,7 @@ def auth_handshake(conn, addr):
                 if ok:
                     token = result
                     with lock:
+                        # Kick old session if user logs in from elsewhere
                         if username in connections:
                             try:
                                 connections[username]["conn"].send(
@@ -346,7 +349,9 @@ while True:
         conn, addr = server.accept()
         print(f"[~] Connection from {addr}")
 
-        def client_entry(c, a):
+        # BUG FIX: use default args to capture conn/addr correctly in the closure
+        # Without this, all threads share the last value of conn/addr (classic Python bug)
+        def client_entry(c=conn, a=addr):
             username, token = auth_handshake(c, a)
             if username:
                 handle(c, username, token)
@@ -359,7 +364,7 @@ while True:
                 except Exception:
                     pass
 
-        threading.Thread(target=client_entry, args=(conn, addr), daemon=True).start()
+        threading.Thread(target=client_entry, daemon=True).start()
 
     except OSError:
         break
