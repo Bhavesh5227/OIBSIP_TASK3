@@ -227,10 +227,10 @@ Standard library used (no install needed): `socket`, `threading`, `json`, `time`
 | 1 | Raw TCP echo server | ✅ Done |
 | 2 | Multi-client threading + DMs | ✅ Done |
 | 3 | JSON message protocol + /quit /stop | ✅ Done |
-| 4 | Chat rooms (scoped broadcast) | 🔧 In progress |
-| 5 | User authentication (bcrypt + tokens) | ⏳ Planned |
+| 4 | Chat rooms (scoped broadcast) | ✅ Done  |
+| 5 | User authentication (bcrypt + tokens) | ✅ Done  |
 | 6 | Message encryption (AES via Fernet) | ⏳ Planned |
-| 7 | WebSocket server + browser GUI | ⏳ Planned |
+| 7 | WebSocket server + browser GUI | ✅ Done  |
 
 ---
 
@@ -247,7 +247,7 @@ Standard library used (no install needed): `socket`, `threading`, `json`, `time`
 
 ## 👤 Author
 
-**Bhavesh** — [GitHub](https://github.com/your-username)
+**Bhavesh** — [GitHub](https://github.com/Bhavesh5227)
 
 Built as part of OIBSIP (Oasis Infobyte Internship Program) — Task 3
 
